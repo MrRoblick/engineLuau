@@ -21,5 +21,5 @@ public:
 	explicit Mesh3D(const std::vector<Vertex>& vertices, const std::vector<unsigned int>& indices);
 	~Mesh3D();
 	GLuint getVAO() const override;
-	GLsizei getIndexCount() const override;
+	GLsizei getIndicesCount() const override;
 };

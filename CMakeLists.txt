@@ -31,6 +31,7 @@ set(PROJECT_SOURCES
     ${SRC}/Shader/Shader.cpp
     ${SRC}/Mesh/Mesh3D.cpp
     ${SRC}/Render/MeshRenderer.cpp
+    ${SRC}/Camera/Camera3D.cpp
 )
 
 add_library(imgui STATIC ${IMGUI_SOURCES})

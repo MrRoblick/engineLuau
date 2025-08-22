@@ -1,12 +1,16 @@
 ﻿/* STD DEPENDENCIES */
 #include <iostream>
 #include <print>
+#include <memory>
 
 /* EXTERN DEPENDENCIES */
 #include <glad/glad.h>
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_opengl3.h>
 #include <GLFW/glfw3.h>
+#include <glm/glm.hpp>
+#include <glm/ext/matrix_clip_space.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 
 /* MESH */
 #include <Mesh/IMesh.h>
@@ -18,6 +22,10 @@
 /* RENDERER */
 #include <Render/MeshRenderer.h>
 
+/* CAMERA */
+#include <Camera/ICamera.h>
+#include <Camera/Camera3D.h>
+
 /* CONSTANTS */
 #define WINDOW_TITLE "GameEngine Luau"
 #define WINDOW_WIDTH 720
@@ -25,7 +33,7 @@
 
 /* GLSL SHADERS */
 
-std::string vertexSrc = R"(#define 460
+std::string vertexSrc = R"(#version 460
 
 layout(location=0) in vec3 vertex;
 layout(location=1) in vec3 normal;
@@ -44,15 +52,15 @@ void main(){
 
 )";
 
-std::string fragmentSrc = R"(#define 460
+std::string fragmentSrc = R"(#version 460
 
 uniform sampler2D texture;
 
 in vec2 aTextureCoords;
-out vec4 outputColor;
+out vec4 OutputColor;
 
 void main(){
-	outputColor = vec4(1.0);
+	OutputColor = vec4(1.0);
 }
 
 )";
@@ -61,6 +69,7 @@ void main(){
 /* GLOBALS */
 bool showUi = true;
 bool fullscreen = false;
+bool mouseLocked = false;
 int windowPosX = 0, windowPosY = 0;
 int windowWidth = WINDOW_WIDTH, windowHeight = WINDOW_HEIGHT;
 
@@ -86,6 +95,10 @@ void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods
 			glfwSetWindowMonitor(window, nullptr,
 				windowPosX, windowPosY, windowWidth, windowHeight, 0);
 		}
+	}
+	else if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS) {
+		mouseLocked = !mouseLocked;
+		glfwSetInputMode(window, GLFW_CURSOR, mouseLocked ? GLFW_CURSOR_DISABLED : GLFW_CURSOR_NORMAL );
 	}
 }
 
@@ -118,7 +131,23 @@ int main()
 		return 3;
 	}
 
-	
+	glEnable(GL_DEPTH_TEST);
+
+	const auto mainShader = std::make_unique<Shader>(vertexSrc, fragmentSrc);
+	const std::vector<Mesh3D::Vertex> planeVertices{
+		Mesh3D::Vertex{ glm::vec3{-0.5f, 0.0f, 0.5f}, glm::vec3{0.0f, 1.0f, 0.0f}, glm::vec2{0.0f, 1.0f}, }, // Left Back
+		Mesh3D::Vertex{ glm::vec3{-0.5f, 0.0f, -0.5f}, glm::vec3{0.0f, 1.0f, 0.0f}, glm::vec2{0.0f, 0.0f}, }, // Left Front
+		Mesh3D::Vertex{ glm::vec3{0.5f, 0.0f, -0.5f}, glm::vec3{0.0f, 1.0f, 0.0f}, glm::vec2{1.0f, 0.0f}, }, // Right Front
+		Mesh3D::Vertex{ glm::vec3{0.5f, 0.0f, 0.5f}, glm::vec3{0.0f, 1.0f, 0.0f}, glm::vec2{1.0f, 1.0f}, }, // Right Back
+	};
+	const std::vector<unsigned int> planeIndices{
+		0, 1, 2,
+		0, 3, 2
+	};
+
+	const auto plane = std::make_unique<Mesh3D>(planeVertices, planeIndices);
+	const auto currentCamera = std::make_unique<Camera3D>();
+	currentCamera->position = glm::vec3{ 0.0f, 2.0f, 5.0f };
 
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
@@ -127,9 +156,42 @@ int main()
 	ImGui_ImplGlfw_InitForOpenGL(window, true);
 	ImGui_ImplOpenGL3_Init("#version 460");
 
+	double oldMouseX = 0.0f, oldMouseY = 0.0f;
+	glfwGetCursorPos(window, &oldMouseX, &oldMouseY);
+
 	while (!glfwWindowShouldClose(window)) {
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		glClearColor(0.0f, 0.5f, 1.0f, 1.0f);
+
+		int width, height;
+		glfwGetWindowSize(window, &width, &height);
+		glViewport(0, 0, width, height);
+
+		float fWidth = static_cast<float>(width), fHeight = static_cast<float>(height);
+		float aspect = fWidth / fHeight;
+
+		double mouseX, mouseY;
+		glfwGetCursorPos(window, &mouseX, &mouseY);
+		float fMouseX = static_cast<float>(mouseX), fMouseY = static_cast<float>(mouseY);
+
+		float oldFMouseX = static_cast<float>(oldMouseX);
+		float oldFMouseY = static_cast<float>(oldMouseY);
+
+		float deltaX = fMouseX - oldFMouseX, deltaY = fMouseY - oldFMouseY;
+
+		oldMouseX = mouseX;
+		oldMouseY = mouseY;
+
+		std::println("Mouse Delta: ({}, {})", deltaX, deltaY);
+		currentCamera->aspect = aspect > 0.0f ? aspect : currentCamera->aspect;
+		currentCamera->rotation += glm::vec3{ deltaY, deltaX, 0.0f };
+		currentCamera->rotation.x = glm::clamp(currentCamera->rotation.x, -89.0f, 89.0f);
+
+		mainShader->use();
+		mainShader->setMat4("projection", currentCamera->getProjectionMatrix());
+		mainShader->setMat4("view", currentCamera->getViewMatrix());
+		mainShader->setMat4("model", glm::identity<glm::mat4>());
+		MeshRenderer::draw(*plane);
 
 		if (showUi) {
 			ImGui_ImplOpenGL3_NewFrame();
@@ -146,6 +208,8 @@ int main()
 		glfwSwapBuffers(window);
 		glfwPollEvents();
 	}
+
+	/* DEINIT */
 	ImGui_ImplOpenGL3_Shutdown();
 	ImGui_ImplGlfw_Shutdown();
 	ImGui::DestroyContext();

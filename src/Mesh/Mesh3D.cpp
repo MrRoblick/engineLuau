@@ -2,8 +2,8 @@
 #include <vector>
 
 
-explicit Mesh3D::Mesh3D(const std::vector<Vertex>& vertices, const std::vector<unsigned int>& indices) {
-	m_indexCount = static_cast<GLsizei>(vertices.size());
+Mesh3D::Mesh3D(const std::vector<Vertex>& vertices, const std::vector<unsigned int>& indices) {
+	m_indexCount = static_cast<GLsizei>(indices.size());
 	constexpr GLsizei vertexSize = sizeof(Vertex);
 
 	glGenVertexArrays(1, &m_vao);
@@ -11,11 +11,12 @@ explicit Mesh3D::Mesh3D(const std::vector<Vertex>& vertices, const std::vector<u
 	glGenBuffers(1, &m_ebo);
 
 	glBindVertexArray(m_vao);
+
 	glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
 	glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vertex), vertices.data(), GL_STATIC_DRAW);
 
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_ebo);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(float), indices.data(), GL_STATIC_DRAW);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), indices.data(), GL_STATIC_DRAW);
 
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, vertexSize, reinterpret_cast<void*>(offsetof(Vertex, position)));
 	glEnableVertexAttribArray(0);
@@ -30,9 +31,9 @@ explicit Mesh3D::Mesh3D(const std::vector<Vertex>& vertices, const std::vector<u
 }
 
 Mesh3D::~Mesh3D() {
-	glDeleteVertexArrays(1, &m_vao);
-	glDeleteBuffers(1, &m_vbo);
-	glDeleteBuffers(1, &m_ebo);
+	if (m_vao) glDeleteVertexArrays(1, &m_vao);
+	if (m_vbo) glDeleteBuffers(1, &m_vbo);
+	if (m_ebo) glDeleteBuffers(1, &m_ebo);
 
 	m_vao = 0;
 	m_vbo = 0;
@@ -44,6 +45,6 @@ GLuint Mesh3D::getVAO() const {
 	return m_vao;
 }
 
-GLsizei Mesh3D::getIndexCount() const {
+GLsizei Mesh3D::getIndicesCount() const {
 	return m_indexCount;
 }
