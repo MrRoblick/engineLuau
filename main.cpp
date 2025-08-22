@@ -70,6 +70,8 @@ void main(){
 bool showUi = true;
 bool fullscreen = false;
 bool mouseLocked = false;
+bool wireframeMode = false;
+
 int windowPosX = 0, windowPosY = 0;
 int windowWidth = WINDOW_WIDTH, windowHeight = WINDOW_HEIGHT;
 
@@ -163,6 +165,11 @@ int main()
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		glClearColor(0.0f, 0.5f, 1.0f, 1.0f);
 
+		if (wireframeMode)
+			glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+		else
+			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+
 		int width, height;
 		glfwGetWindowSize(window, &width, &height);
 		glViewport(0, 0, width, height);
@@ -182,7 +189,7 @@ int main()
 		oldMouseX = mouseX;
 		oldMouseY = mouseY;
 
-		std::println("Mouse Delta: ({}, {})", deltaX, deltaY);
+		//std::println("Mouse Delta: ({}, {})", deltaX, deltaY);
 		currentCamera->aspect = aspect > 0.0f ? aspect : currentCamera->aspect;
 		currentCamera->rotation += glm::vec3{ deltaY, deltaX, 0.0f };
 		currentCamera->rotation.x = glm::clamp(currentCamera->rotation.x, -89.0f, 89.0f);
@@ -197,8 +204,11 @@ int main()
 			ImGui_ImplOpenGL3_NewFrame();
 			ImGui_ImplGlfw_NewFrame();
 			ImGui::NewFrame();
-			ImGui::Begin("@LLVM Debug Window");
-			ImGui::Text("OMG ImGui!!!");
+			ImGui::Begin("Developer menu");
+			ImGui::Text("## GameEngine ##");
+			if (ImGui::Button("Wireframe Mode")) {
+				wireframeMode = !wireframeMode;
+			}
 			ImGui::End();
 
 			ImGui::Render();
