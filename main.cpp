@@ -2,11 +2,43 @@
 #include <print>
 
 #include <glad/glad.h>
+#include <imgui_impl_glfw.h>
+#include <imgui_impl_opengl3.h>
 #include <GLFW/glfw3.h>
 
 #define WINDOW_TITLE "GameEngine Luau"
 #define WINDOW_WIDTH 720
 #define WINDOW_HEIGHT 480
+
+bool showUi = true;
+bool fullscreen = false;
+int windowPosX = 0, windowPosY = 0;
+int windowWidth = WINDOW_WIDTH, windowHeight = WINDOW_HEIGHT;
+
+void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
+	if (key == GLFW_KEY_INSERT && action == GLFW_PRESS) {
+		showUi = !showUi;
+	
+	}
+	else if (key == GLFW_KEY_F11 && action == GLFW_PRESS) {
+		fullscreen = !fullscreen;
+
+		if (fullscreen) {
+			glfwGetWindowPos(window, &windowPosX, &windowPosY);
+			glfwGetWindowSize(window, &windowWidth, &windowHeight);
+
+			GLFWmonitor* monitor = glfwGetPrimaryMonitor();
+			const GLFWvidmode* mode = glfwGetVideoMode(monitor);
+
+			glfwSetWindowMonitor(window, monitor,
+				0, 0, mode->width, mode->height, mode->refreshRate);
+		}
+		else {
+			glfwSetWindowMonitor(window, nullptr,
+				windowPosX, windowPosY, windowWidth, windowHeight, 0);
+		}
+	}
+}
 
 int main()
 {
@@ -20,22 +52,55 @@ int main()
 	glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
 
 	GLFWwindow* const window = glfwCreateWindow(WINDOW_WIDTH, WINDOW_HEIGHT, WINDOW_TITLE, nullptr, nullptr);
+	if (!window) {
+		std::println("Failed to create window");
+		glfwTerminate();
+		return 2;
+	}
+	glfwGetWindowPos(window, &windowPosX, &windowPosY);
+	glfwGetWindowSize(window, &windowWidth, &windowHeight);
+
+	glfwSetKeyCallback(window, keyCallback);
 	glfwMakeContextCurrent(window);
-	glfwSwapInterval(1);
+	glfwSwapInterval(0);
 
 	if (!gladLoadGLLoader(reinterpret_cast<GLADloadproc>(glfwGetProcAddress))) {
 		std::println("Failed to load GLAD");
-		return 2;
+		return 3;
 	}
+
+	IMGUI_CHECKVERSION();
+	ImGui::CreateContext();
+	ImGuiIO& io = ImGui::GetIO(); (void)io;
+	ImGui::StyleColorsDark();
+	ImGui_ImplGlfw_InitForOpenGL(window, true);
+	ImGui_ImplOpenGL3_Init("#version 460");
 
 	while (!glfwWindowShouldClose(window)) {
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-		glClearColor(0.0f, 0.8f, 1.0f, 1.0f); // Test!! 123 123
+		glClearColor(0.0f, 0.5f, 1.0f, 1.0f);
+
+		if (showUi) {
+			ImGui_ImplOpenGL3_NewFrame();
+			ImGui_ImplGlfw_NewFrame();
+			ImGui::NewFrame();
+			ImGui::Begin("@LLVM Debug Window");
+			ImGui::Text("OMG ImGui!!!");
+			ImGui::End();
+
+			ImGui::Render();
+			ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+		}
 
 		glfwSwapBuffers(window);
 		glfwPollEvents();
 	}
-	
+	ImGui_ImplOpenGL3_Shutdown();
+	ImGui_ImplGlfw_Shutdown();
+	ImGui::DestroyContext();
+
+	glfwDestroyWindow(window);
+	glfwTerminate();
 
 	return 0;
 }
