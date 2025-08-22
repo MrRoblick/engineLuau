@@ -2,7 +2,7 @@
 #include <vector>
 
 
-Mesh3D::Mesh3D(const std::vector<Vertex>& vertices, const std::vector<unsigned int>& indices) {
+explicit Mesh3D::Mesh3D(const std::vector<Vertex>& vertices, const std::vector<unsigned int>& indices) {
 	m_indexCount = static_cast<GLsizei>(vertices.size());
 	constexpr GLsizei vertexSize = sizeof(Vertex);
 

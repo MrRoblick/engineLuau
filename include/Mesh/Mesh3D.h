@@ -2,7 +2,7 @@
 #include <glad/glad.h>
 #include <vector>
 #include <Mesh/IMesh.h>
-#include <glm.hpp>
+#include <glm/glm.hpp>
 
 
 
@@ -18,7 +18,7 @@ public:
 		glm::vec3 normal;
 		glm::vec2 textureCoords;
 	};
-	Mesh3D(const std::vector<Vertex>& vertices, const std::vector<unsigned int>& indices);
+	explicit Mesh3D(const std::vector<Vertex>& vertices, const std::vector<unsigned int>& indices);
 	~Mesh3D();
 	GLuint getVAO() const override;
 	GLsizei getIndexCount() const override;

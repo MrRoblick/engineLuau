@@ -11,7 +11,9 @@ public:
 	glm::vec3 position;
 	glm::vec3 rotation;
 
-	Camera3D() = default;
+	explicit Camera3D() = default;
+	explicit Camera3D(glm::vec3 position, glm::vec3 rotation, float fieldOfView, float nearPlaneZ, float farPlaneZ, float aspect)
+		: position(position), rotation(rotation), fieldOfView(fieldOfView), nearPlaneZ(nearPlaneZ), farPlaneZ(farPlaneZ), aspect(aspect) {};
 	~Camera3D() = default;
 
 	glm::mat4 getViewMatrix() const override;
