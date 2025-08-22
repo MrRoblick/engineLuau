@@ -8,6 +8,7 @@ endif()
 project("engineLuau")
 
 set(EXTERN "${CMAKE_SOURCE_DIR}/extern")
+set(SRC "${CMAKE_SOURCE_DIR}/src")
 set(GLAD "${EXTERN}/glad")
 set(GLFW "${EXTERN}/glfw")
 set(GLM "${EXTERN}/glm")
@@ -26,6 +27,12 @@ set(IMGUI_SOURCES
     ${IMGUI}/backends/imgui_impl_opengl3.cpp
 )
 
+set(PROJECT_SOURCES
+    ${SRC}/Shader/Shader.cpp
+    ${SRC}/Mesh/Mesh3D.cpp
+    ${SRC}/Render/MeshRenderer.cpp
+)
+
 add_library(imgui STATIC ${IMGUI_SOURCES})
 target_include_directories(imgui PUBLIC
     ${IMGUI}
@@ -42,12 +49,12 @@ set_target_properties(glfw3 PROPERTIES
 )
 
 find_package(OpenGL REQUIRED)
-
 target_link_libraries(imgui PUBLIC glfw3 OpenGL::GL)
 
-add_executable(GameEngineLuau "main.cpp")
+add_executable(GameEngineLuau "main.cpp" ${PROJECT_SOURCES})
 
 target_include_directories(GameEngineLuau PRIVATE
+    "${CMAKE_SOURCE_DIR}/include"
     "${GLAD}/include"
     "${GLFW}/include"
     "${GLM}/include"
