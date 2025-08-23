@@ -9,7 +9,7 @@ class Instance;
 using InstancePtr = std::shared_ptr<Instance>;
 using WeakInstancePtr = std::weak_ptr<Instance>;
 
-class Instance: std::enable_shared_from_this<Instance> {
+class Instance: public std::enable_shared_from_this<Instance> {
 public:
 	Instance() = default;
 	virtual ~Instance() {};
@@ -37,8 +37,6 @@ public:
 
 	std::string getClassName();
 private:
-	std::string m_className = "Instance";
-
 	std::vector<InstancePtr> children;
 	std::mutex mutexChildren;
 };

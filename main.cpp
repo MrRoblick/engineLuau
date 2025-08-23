@@ -26,6 +26,11 @@
 #include <Camera/ICamera.h>
 #include <Camera/Camera3D.h>
 
+/* INSTANCES */
+#include <Instance/Instance.h>
+#include <Instance/DataModel.h>
+#include <Instance/BasePart.h>
+
 /* GLB DESERIALIZER */
 #include <MeshDeserializer/GlbDeserializer.h>
 
@@ -90,6 +95,7 @@ int windowPosX = 0, windowPosY = 0;
 int windowWidth = WINDOW_WIDTH, windowHeight = WINDOW_HEIGHT;
 
 ResourceManager& resourceManager = ResourceManager::getInstance();
+static auto datamodel = DataModel::getInstance();
 
 void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
 	if (key == GLFW_KEY_INSERT && action == GLFW_PRESS) {
@@ -165,6 +171,18 @@ int main()
 		0, 3, 2
 	};
 	const auto object = resourceManager.meshManager.loadMeshFromFile("./resources/pumpkin.glb");
+
+	datamodel->name = "Game";
+
+	auto workspace = std::make_shared<Instance>();
+	workspace->name = "Workspace";
+	workspace->setParent(datamodel);
+
+	auto foobar = std::make_shared<Instance>();
+	foobar->name = "penis";
+	foobar->setParent(workspace);
+
+	std::println("{}", foobar->getFullName());
 
 	const auto plane = std::make_unique<Mesh3D>(planeVertices, planeIndices);
 	const auto currentCamera = std::make_unique<Camera3D>();

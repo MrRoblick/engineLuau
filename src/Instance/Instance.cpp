@@ -96,6 +96,10 @@ std::vector<InstancePtr> Instance::getChildren() const {
 }
 
 void Instance::setParent(const InstancePtr& newParent) {
+    if (newParent == nullptr) {
+        parent = newParent;
+        return;
+    }
     InstancePtr oldParent = parent.lock();
 
     if (oldParent == newParent) {
@@ -194,8 +198,6 @@ void Instance::destroy() {
 InstancePtr Instance::clone() const {
     auto inst = std::make_shared<Instance>();
     inst->name = name;
-    inst->m_className = m_className;
-
     std::vector<InstancePtr> localChildren;
     {
         Instance* self = const_cast<Instance*>(this);
@@ -216,6 +218,6 @@ InstancePtr Instance::clone() const {
 }
 
 std::string Instance::getClassName() {
-    if (!m_className.empty()) return m_className;
+    //if (!m_className.empty()) return m_className;
     return std::string(typeid(*this).name());
 }

@@ -38,6 +38,7 @@ set(PROJECT_SOURCES
     "${SRC}/ResourceManager/Managers/MeshManager.cpp"
     "${SRC}/Event/Connection.cpp"
     "${SRC}/Instance/Instance.cpp"
+    "${SRC}/Instance/DataModel.cpp"
 )
 
 add_library(imgui STATIC ${IMGUI_SOURCES})
