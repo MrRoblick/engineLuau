@@ -34,6 +34,8 @@ set(PROJECT_SOURCES
     "${SRC}/Render/MeshRenderer.cpp"
     "${SRC}/Camera/Camera3D.cpp"
     "${SRC}/MeshDeserializer/GlbDeserializer.cpp"
+    "${SRC}/ResourceManager/ResourceManager.cpp"
+    "${SRC}/ResourceManager/Managers/MeshManager.cpp"
 )
 
 add_library(imgui STATIC ${IMGUI_SOURCES})

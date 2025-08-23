@@ -29,6 +29,10 @@
 /* GLB DESERIALIZER */
 #include <MeshDeserializer/GlbDeserializer.h>
 
+/* RESOURCE MANAGER */
+#include <ResourceManager/Managers/MeshManager.h>
+#include <ResourceManager/ResourceManager.h>
+
 /* CONSTANTS */
 #define WINDOW_TITLE "GameEngine Luau"
 #define WINDOW_WIDTH 720
@@ -84,6 +88,8 @@ bool wireframeMode = false;
 
 int windowPosX = 0, windowPosY = 0;
 int windowWidth = WINDOW_WIDTH, windowHeight = WINDOW_HEIGHT;
+
+ResourceManager& resourceManager = ResourceManager::getInstance();
 
 void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
 	if (key == GLFW_KEY_INSERT && action == GLFW_PRESS) {
@@ -158,9 +164,7 @@ int main()
 		0, 1, 2,
 		0, 3, 2
 	};
-
-	const auto [objectVertices, objectIndices] = GlbDeserializer::deserialize("./resources/pumpkin.glb");
-	const auto object = std::make_unique<Mesh3D>(objectVertices, objectIndices);
+	const auto object = resourceManager.meshManager.loadMeshFromFile("./resources/pumpkin.glb");
 
 	const auto plane = std::make_unique<Mesh3D>(planeVertices, planeIndices);
 	const auto currentCamera = std::make_unique<Camera3D>();
