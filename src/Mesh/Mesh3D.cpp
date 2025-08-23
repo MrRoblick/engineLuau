@@ -24,7 +24,10 @@ Mesh3D::Mesh3D(const std::vector<Vertex>& vertices, const std::vector<unsigned i
 	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, vertexSize, reinterpret_cast<void*>(offsetof(Vertex, normal)));
 	glEnableVertexAttribArray(1);
 
-	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, vertexSize, reinterpret_cast<void*>(offsetof(Vertex, textureCoords)));
+	glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, vertexSize, reinterpret_cast<void*>(offsetof(Vertex, vertexColor)));
+	glEnableVertexAttribArray(1);
+
+	glVertexAttribPointer(3, 2, GL_FLOAT, GL_FALSE, vertexSize, reinterpret_cast<void*>(offsetof(Vertex, textureCoords)));
 	glEnableVertexAttribArray(2);
 
 	glBindVertexArray(0);

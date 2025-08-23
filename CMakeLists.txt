@@ -13,32 +13,34 @@ set(GLAD "${EXTERN}/glad")
 set(GLFW "${EXTERN}/glfw")
 set(GLM "${EXTERN}/glm")
 set(IMGUI "${EXTERN}/imgui")
+set(JSON "${EXTERN}/json")
 
 add_library(glad STATIC "${GLAD}/src/glad.c")
 target_include_directories(glad PUBLIC "${GLAD}/include")
 
 set(IMGUI_SOURCES
-    ${IMGUI}/imgui.cpp
-    ${IMGUI}/imgui_draw.cpp
-    ${IMGUI}/imgui_tables.cpp
-    ${IMGUI}/imgui_widgets.cpp
-    ${IMGUI}/imgui_demo.cpp
-    ${IMGUI}/backends/imgui_impl_glfw.cpp
-    ${IMGUI}/backends/imgui_impl_opengl3.cpp
+    "${IMGUI}/imgui.cpp"
+    "${IMGUI}/imgui_draw.cpp"
+    "${IMGUI}/imgui_tables.cpp"
+    "${IMGUI}/imgui_widgets.cpp"
+    "${IMGUI}/imgui_demo.cpp"
+    "${IMGUI}/backends/imgui_impl_glfw.cpp"
+    "${IMGUI}/backends/imgui_impl_opengl3.cpp"
 )
 
 set(PROJECT_SOURCES
-    ${SRC}/Shader/Shader.cpp
-    ${SRC}/Mesh/Mesh3D.cpp
-    ${SRC}/Render/MeshRenderer.cpp
-    ${SRC}/Camera/Camera3D.cpp
+    "${SRC}/Shader/Shader.cpp"
+    "${SRC}/Mesh/Mesh3D.cpp"
+    "${SRC}/Render/MeshRenderer.cpp"
+    "${SRC}/Camera/Camera3D.cpp"
+    "${SRC}/MeshDeserializer/GlbDeserializer.cpp"
 )
 
 add_library(imgui STATIC ${IMGUI_SOURCES})
 target_include_directories(imgui PUBLIC
     ${IMGUI}
-    ${IMGUI}/backends
-    ${GLAD}/include
+    "${IMGUI}/backends"
+    "${GLAD}/include"
 )
 target_compile_definitions(imgui PUBLIC IMGUI_IMPL_OPENGL_LOADER_GLAD)
 target_link_libraries(imgui PUBLIC glad)
@@ -61,6 +63,7 @@ target_include_directories(GameEngineLuau PRIVATE
     "${GLM}/include"
     "${IMGUI}"
     "${IMGUI}/backends"
+    "${JSON}/include"
 )
 
 target_link_libraries(GameEngineLuau PRIVATE

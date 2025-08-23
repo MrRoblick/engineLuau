@@ -26,6 +26,9 @@
 #include <Camera/ICamera.h>
 #include <Camera/Camera3D.h>
 
+/* GLB DESERIALIZER */
+#include <MeshDeserializer/GlbDeserializer.h>
+
 /* CONSTANTS */
 #define WINDOW_TITLE "GameEngine Luau"
 #define WINDOW_WIDTH 720
@@ -37,17 +40,22 @@ std::string vertexSrc = R"(#version 460
 
 layout(location=0) in vec3 vertex;
 layout(location=1) in vec3 normal;
-layout(location=2) in vec2 textureCoords;
+layout(location=2) in vec3 vertexColor;
+layout(location=3) in vec2 textureCoords;
 
 uniform mat4 projection;
 uniform mat4 view;
 uniform mat4 model;
 
 out vec2 aTextureCoords;
+out vec3 aNormal;
+out vec3 aVertexColor;
 
 void main(){
 	gl_Position = projection * view * model * vec4(vertex, 1.0);
 	aTextureCoords = textureCoords;
+	aNormal = normalize(normal);
+	aVertexColor = vertexColor;
 }
 
 )";
@@ -57,10 +65,12 @@ std::string fragmentSrc = R"(#version 460
 uniform sampler2D texture;
 
 in vec2 aTextureCoords;
+in vec3 aNormal;
+in vec3 aVertexColor;
 out vec4 OutputColor;
 
 void main(){
-	OutputColor = vec4(1.0);
+	OutputColor = vec4(aNormal, 1.0);
 }
 
 )";
@@ -134,22 +144,27 @@ int main()
 	}
 
 	glEnable(GL_DEPTH_TEST);
+	glEnable(GL_CULL_FACE);
+	glCullFace(GL_BACK);
 
 	const auto mainShader = std::make_unique<Shader>(vertexSrc, fragmentSrc);
 	const std::vector<Mesh3D::Vertex> planeVertices{
-		Mesh3D::Vertex{ glm::vec3{-0.5f, 0.0f, 0.5f}, glm::vec3{0.0f, 1.0f, 0.0f}, glm::vec2{0.0f, 1.0f}, }, // Left Back
-		Mesh3D::Vertex{ glm::vec3{-0.5f, 0.0f, -0.5f}, glm::vec3{0.0f, 1.0f, 0.0f}, glm::vec2{0.0f, 0.0f}, }, // Left Front
-		Mesh3D::Vertex{ glm::vec3{0.5f, 0.0f, -0.5f}, glm::vec3{0.0f, 1.0f, 0.0f}, glm::vec2{1.0f, 0.0f}, }, // Right Front
-		Mesh3D::Vertex{ glm::vec3{0.5f, 0.0f, 0.5f}, glm::vec3{0.0f, 1.0f, 0.0f}, glm::vec2{1.0f, 1.0f}, }, // Right Back
+		Mesh3D::Vertex{ glm::vec3{-0.5f, 0.0f, 0.5f}, glm::vec3{1.0f, 1.0f, 1.0f}, glm::vec3{0.0f, 1.0f, 0.0f}, glm::vec2{0.0f, 1.0f},}, // Left Back
+		Mesh3D::Vertex{ glm::vec3{-0.5f, 0.0f, -0.5f}, glm::vec3{1.0f, 1.0f, 1.0f}, glm::vec3{0.0f, 1.0f, 0.0f}, glm::vec2{0.0f, 0.0f}, }, // Left Front
+		Mesh3D::Vertex{ glm::vec3{0.5f, 0.0f, -0.5f}, glm::vec3{1.0f, 1.0f, 1.0f}, glm::vec3{0.0f, 1.0f, 0.0f}, glm::vec2{1.0f, 0.0f}, }, // Right Front
+		Mesh3D::Vertex{ glm::vec3{0.5f, 0.0f, 0.5f}, glm::vec3{1.0f, 1.0f, 1.0f}, glm::vec3{0.0f, 1.0f, 0.0f}, glm::vec2{1.0f, 1.0f}, }, // Right Back
 	};
 	const std::vector<unsigned int> planeIndices{
 		0, 1, 2,
 		0, 3, 2
 	};
 
+	const auto [objectVertices, objectIndices] = GlbDeserializer::deserialize("./resources/pumpkin.glb");
+	const auto object = std::make_unique<Mesh3D>(objectVertices, objectIndices);
+
 	const auto plane = std::make_unique<Mesh3D>(planeVertices, planeIndices);
 	const auto currentCamera = std::make_unique<Camera3D>();
-	currentCamera->position = glm::vec3{ 0.0f, 2.0f, 5.0f };
+	currentCamera->position = glm::vec3{ 0.0f, 2.0f, 2.0f };
 
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
@@ -161,6 +176,9 @@ int main()
 	double oldMouseX = 0.0f, oldMouseY = 0.0f;
 	glfwGetCursorPos(window, &oldMouseX, &oldMouseY);
 
+	double glfwTime = 0;
+	double lastGlfwTime = 0;
+
 	while (!glfwWindowShouldClose(window)) {
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		glClearColor(0.0f, 0.5f, 1.0f, 1.0f);
@@ -169,6 +187,10 @@ int main()
 			glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 		else
 			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+
+		glfwTime = glfwGetTime();
+		double deltaTime = glfwTime - lastGlfwTime;
+		lastGlfwTime = glfwTime;
 
 		int width, height;
 		glfwGetWindowSize(window, &width, &height);
@@ -186,6 +208,7 @@ int main()
 
 		float deltaX = fMouseX - oldFMouseX, deltaY = fMouseY - oldFMouseY;
 
+		
 		oldMouseX = mouseX;
 		oldMouseY = mouseY;
 
@@ -194,11 +217,40 @@ int main()
 		currentCamera->rotation += glm::vec3{ deltaY, deltaX, 0.0f };
 		currentCamera->rotation.x = glm::clamp(currentCamera->rotation.x, -89.0f, 89.0f);
 
+		if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
+			float x = glm::sin(glm::radians(currentCamera->rotation.y));
+			float z = glm::cos(glm::radians(currentCamera->rotation.y));
+			currentCamera->position += glm::vec3{x * 10.0f * deltaTime,0.0f,-z * 10.0f * deltaTime };
+		} 
+		if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
+			float x = glm::sin(glm::radians(currentCamera->rotation.y));
+			float z = glm::cos(glm::radians(currentCamera->rotation.y));
+			currentCamera->position += glm::vec3{ -x * 10.0f * deltaTime,0.0f,z * 10.0f * deltaTime };
+		}  
+		if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
+			float x = glm::sin(glm::radians(currentCamera->rotation.y-90.0f));
+			float z = glm::cos(glm::radians(currentCamera->rotation.y-90.0f));
+			currentCamera->position += glm::vec3{ x * 10.0f * deltaTime,0.0f,-z * 10.0f * deltaTime };
+		} 
+		if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
+			float x = glm::sin(glm::radians(currentCamera->rotation.y + 90.0f));
+			float z = glm::cos(glm::radians(currentCamera->rotation.y + 90.0f));
+			currentCamera->position += glm::vec3{ x * 10.0f * deltaTime,0.0f,-z * 10.0f * deltaTime };
+		}
+
+		if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS) {
+			currentCamera->position += glm::vec3{0.0f, 10.0f * deltaTime, 0.0f};
+		}
+
+		if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS) {
+			currentCamera->position += glm::vec3{ 0.0f, -10.0f * deltaTime, 0.0f };
+		}
+
 		mainShader->use();
 		mainShader->setMat4("projection", currentCamera->getProjectionMatrix());
 		mainShader->setMat4("view", currentCamera->getViewMatrix());
 		mainShader->setMat4("model", glm::identity<glm::mat4>());
-		MeshRenderer::draw(*plane);
+		MeshRenderer::draw(*object);
 
 		if (showUi) {
 			ImGui_ImplOpenGL3_NewFrame();

@@ -16,6 +16,7 @@ public:
 	struct Vertex {
 		glm::vec3 position;
 		glm::vec3 normal;
+		glm::vec3 vertexColor;
 		glm::vec2 textureCoords;
 	};
 	explicit Mesh3D(const std::vector<Vertex>& vertices, const std::vector<unsigned int>& indices);
