@@ -1,9 +1,8 @@
 #include <ResourceManager/Managers/Texture2DManager.h>
-#include <memory>
 #include <string>
-#include <Texture/Texture2D.h>
-#include <MeshDeserializer/GlbDeserializer.h>
 #include <unordered_map>
+#include <Texture/Texture2D.h>
+#include <memory>
 
 Texture2DManager& Texture2DManager::getInstance() {
 	static Texture2DManager instance;
@@ -15,8 +14,10 @@ std::shared_ptr<Texture2D> Texture2DManager::loadTextureFromFile(const std::stri
 	if (it != m_textures.end()) {
 		return it->second;
 	}
+
 	auto tex = std::make_shared<Texture2D>(filename);
 	m_textures[filename] = tex;
+
 	return tex;
 }
 

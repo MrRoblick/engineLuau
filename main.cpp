@@ -37,6 +37,7 @@
 
 /* RESOURCE MANAGER */
 #include <ResourceManager/Managers/MeshManager.h>
+#include <ResourceManager/Managers/Texture2DManager.h>
 #include <ResourceManager/ResourceManager.h>
 
 /* CONSTANTS */
@@ -60,27 +61,37 @@ uniform mat4 model;
 out vec2 aTextureCoords;
 out vec3 aNormal;
 out vec3 aVertexColor;
+out vec3 aVertex;
 
 void main(){
 	gl_Position = projection * view * model * vec4(vertex, 1.0);
 	aTextureCoords = textureCoords;
 	aNormal = normalize(normal);
 	aVertexColor = vertexColor;
+	aVertex = vertex;
 }
 
 )";
 
 std::string fragmentSrc = R"(#version 460
 
-uniform sampler2D texture;
+uniform sampler2D meshTexture;
+uniform bool useTexture = false;
+uniform vec2 uTile = vec2(1.0, 1.0);
 
 in vec2 aTextureCoords;
 in vec3 aNormal;
 in vec3 aVertexColor;
+in vec3 aVertex;
 out vec4 OutputColor;
 
 void main(){
-	OutputColor = vec4(aNormal, 1.0);
+	vec3 lightDir = normalize(vec3(1.0,1.0,0.5));
+    float diff = max(dot(aNormal, lightDir), 0.0);
+
+	vec4 texColor = useTexture ? texture2D(meshTexture, aTextureCoords*uTile) : vec4(1.0); // vec4(aNormal, 1.0); 
+	vec4 lightFaceColor = vec4(texColor.rgb * (0.3 + 0.7*diff), texColor.a);
+	OutputColor = lightFaceColor;
 }
 
 )";
@@ -186,6 +197,9 @@ int main()
 	const auto object2 = resourceManager.meshManager.loadMeshFromFile("./resources/TheText.glb");
 
 	const auto partMesh = resourceManager.meshManager.loadMeshFromFile("./resources/Part.glb");
+	const auto vegetableTexture = resourceManager.texture2DManager.loadTextureFromFile("./resources/vegetable.png");
+	const auto pumpkinTexture = resourceManager.texture2DManager.loadTextureFromFile("./resources/pumpkinTex.png");
+	const auto plasticStudsTexture = resourceManager.texture2DManager.loadTextureFromFile("./resources/plasticStuds.png");
 
 	datamodel->name = "Game";
 
@@ -306,18 +320,33 @@ int main()
 		mainShader->setMat4("view", currentCamera->getViewMatrix());
 
 
-		mainShader->setMat4("model", glm::identity<glm::mat4>());
-		MeshRenderer::draw(*object);
+		{
+			mainShader->setInt("useTexture", 1);
+			mainShader->setInt("meshTexture", 0);
+			mainShader->setFloat2("uTile", 1.0f, 1.0f);
+			mainShader->setMat4("model", glm::identity<glm::mat4>());
+			MeshRenderer::draw(*object, std::vector<std::shared_ptr<ITexture>>{pumpkinTexture});
+
+			mainShader->setInt("useTexture", 0);
+		}
 
 		{
 			auto model = glm::identity<glm::mat4>();
 			model = glm::translate(model, glm::vec3{ 0.0f, 1.5f, 0.0f });
 			mainShader->setMat4("model", model);
-			MeshRenderer::draw(*object1);
+
+			mainShader->setInt("useTexture", 1);
+			mainShader->setInt("meshTexture", 0);
+			mainShader->setFloat2("uTile", 1.0f, 1.0f);
+
+			MeshRenderer::draw(*object1, std::vector<std::shared_ptr<ITexture>>{vegetableTexture});
+
+			mainShader->setInt("useTexture", 0);
 		}
 		{
 			auto model = glm::identity<glm::mat4>();
 			model = glm::translate(model, glm::vec3{ 0.0f, 3.2f, -3.0f });
+			mainShader->setFloat2("uTile", 1.0f, 1.0f);
 			mainShader->setMat4("model", model);
 			MeshRenderer::draw(*object2);
 		}
@@ -331,7 +360,12 @@ int main()
 					model = glm::rotate(model, glm::radians(part->orientation.y), glm::vec3{ 0.0f, 1.0f, 0.0f });
 					model = glm::scale(model, part->size);
 					mainShader->setMat4("model", model);
-					MeshRenderer::draw(*partMesh);
+					
+					mainShader->setInt("useTexture", 1);
+					mainShader->setInt("meshTexture", 0);
+					mainShader->setFloat2("uTile", 1.0f, 1.0f);
+					MeshRenderer::draw(*partMesh, std::vector<std::shared_ptr<ITexture>>{plasticStudsTexture});
+					mainShader->setInt("useTexture", 0);
 				}
 			}
 		}

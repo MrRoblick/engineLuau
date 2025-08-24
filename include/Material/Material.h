@@ -7,5 +7,5 @@ public:
 	Material() = default;
 	virtual ~Material() = default;
 
-	void apply() const;
+	void apply() const = default;
 };

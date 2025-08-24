@@ -43,6 +43,7 @@ set(PROJECT_SOURCES
     "${SRC}/Instance/Instance.cpp"
     "${SRC}/Instance/DataModel.cpp"
     "${SRC}/Texture/Texture2D.cpp"
+    "${STB}/include/stb/stb_image.h"
 )
 
 add_library(imgui STATIC ${IMGUI_SOURCES})
