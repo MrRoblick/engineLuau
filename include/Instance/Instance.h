@@ -30,6 +30,7 @@ public:
 	std::string getFullName();
 
 	std::vector<InstancePtr> getChildren() const;
+	std::vector<InstancePtr> getDescendants() const;
 	void setParent(const InstancePtr& newParent);
 
 	virtual void destroy();
@@ -37,6 +38,6 @@ public:
 
 	std::string getClassName();
 private:
-	std::vector<InstancePtr> children;
-	std::mutex mutexChildren;
+	std::vector<InstancePtr> m_children;
+	std::mutex m_mutexChildren;
 };

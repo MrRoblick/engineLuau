@@ -126,6 +126,16 @@ void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods
 	}
 }
 
+void DrawInstanceTree(const std::shared_ptr<Instance>& instance) {
+	if (!instance) return;
+	if (ImGui::TreeNode(instance->name.c_str())) {
+		for (const auto& child : instance->getChildren()) {
+			DrawInstanceTree(child);
+		}
+		ImGui::TreePop();
+	}
+}
+
 int main()
 {
 	if (!glfwInit()) {
@@ -171,6 +181,8 @@ int main()
 		0, 3, 2
 	};
 	const auto object = resourceManager.meshManager.loadMeshFromFile("./resources/pumpkin.glb");
+	const auto object1 = resourceManager.meshManager.loadMeshFromFile("./resources/vegetable.glb");
+	const auto object2 = resourceManager.meshManager.loadMeshFromFile("./resources/TheText.glb");
 
 	datamodel->name = "Game";
 
@@ -182,7 +194,9 @@ int main()
 	foobar->name = "penis";
 	foobar->setParent(workspace);
 
-	std::println("{}", foobar->getFullName());
+	auto replicatedStorage = std::make_shared<Instance>();
+	replicatedStorage->name = "ReplicatedStorage";
+	replicatedStorage->setParent(datamodel);
 
 	const auto plane = std::make_unique<Mesh3D>(planeVertices, planeIndices);
 	const auto currentCamera = std::make_unique<Camera3D>();
@@ -271,18 +285,43 @@ int main()
 		mainShader->use();
 		mainShader->setMat4("projection", currentCamera->getProjectionMatrix());
 		mainShader->setMat4("view", currentCamera->getViewMatrix());
+
+
 		mainShader->setMat4("model", glm::identity<glm::mat4>());
 		MeshRenderer::draw(*object);
+
+		{
+			auto model = glm::identity<glm::mat4>();
+			model = glm::translate(model, glm::vec3{ 0.0f, 1.5f, 0.0f });
+			mainShader->setMat4("model", model);
+			MeshRenderer::draw(*object1);
+		}
+		{
+			auto model = glm::identity<glm::mat4>();
+			model = glm::translate(model, glm::vec3{ 0.0f, 3.2f, -3.0f });
+			mainShader->setMat4("model", model);
+			MeshRenderer::draw(*object2);
+		}
 
 		if (showUi) {
 			ImGui_ImplOpenGL3_NewFrame();
 			ImGui_ImplGlfw_NewFrame();
 			ImGui::NewFrame();
 			ImGui::Begin("Developer menu");
-			ImGui::Text("## GameEngine ##");
+			ImGui::Text("@ Graphics Engine Options");
+
 			if (ImGui::Button("Wireframe Mode")) {
 				wireframeMode = !wireframeMode;
 			}
+			ImGui::Separator();
+			ImGui::Text("FPS: %.2f", 1.0f/deltaTime );
+			ImGui::Separator();
+			ImGui::Text("Camera Position: (%.2f, %.2f, %.2f)", currentCamera->position.x, currentCamera->position.y, currentCamera->position.z);
+			ImGui::Text("Camera Rotation: (%.2f, %.2f, %.2f)", currentCamera->rotation.x, currentCamera->rotation.y, currentCamera->rotation.z);
+
+			ImGui::Text("@ Explorer");
+			DrawInstanceTree(datamodel);
+
 			ImGui::End();
 
 			ImGui::Render();

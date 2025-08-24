@@ -9,8 +9,8 @@
 #include <vector>
 
 InstancePtr Instance::findFirstChild(const std::string& name) {
-    std::lock_guard<std::mutex> lock(mutexChildren);
-    for (const auto& c : children) {
+    std::lock_guard<std::mutex> lock(m_mutexChildren);
+    for (const auto& c : m_children) {
         if (c && c->name == name) {
             return c;
         }
@@ -19,8 +19,8 @@ InstancePtr Instance::findFirstChild(const std::string& name) {
 }
 
 InstancePtr Instance::findFirstChildOfClass(const std::string& className) {
-    std::lock_guard<std::mutex> lock(mutexChildren);
-    for (const auto& c : children) {
+    std::lock_guard<std::mutex> lock(m_mutexChildren);
+    for (const auto& c : m_children) {
         if (c && c->getClassName() == className) {
             return c;
         }
@@ -32,7 +32,7 @@ InstancePtr Instance::findFirstAncestor(const std::string& name) {
     InstancePtr cur = parent.lock();
     while (cur) {
         {
-            std::lock_guard<std::mutex> lk(cur->mutexChildren);
+            std::lock_guard<std::mutex> lk(cur->m_mutexChildren);
             if (cur->name == name) return cur;
         }
         cur = cur->parent.lock();
@@ -44,7 +44,7 @@ InstancePtr Instance::findFirstAncestorOfClass(const std::string& className) {
     InstancePtr cur = parent.lock();
     while (cur) {
         {
-            std::lock_guard<std::mutex> lk(cur->mutexChildren);
+            std::lock_guard<std::mutex> lk(cur->m_mutexChildren);
             if (cur->getClassName() == className) return cur;
         }
         cur = cur->parent.lock();
@@ -58,41 +58,27 @@ std::string Instance::getFullName() {
         self = shared_from_this();
     }
     catch (const std::bad_weak_ptr&) {
-        std::lock_guard<std::mutex> lk(mutexChildren);
         return name;
     }
-
-    std::vector<InstancePtr> chain;
-    chain.reserve(8);
-    chain.push_back(self);
-
-    while (true) {
-        InstancePtr cur = chain.back();
-        InstancePtr par;
-        {
-            std::lock_guard<std::mutex> lock(cur->mutexChildren);
-            par = cur->parent.lock();
-        }
-        if (!par) break;
-        chain.push_back(par);
+    std::vector<std::string> names;
+    InstancePtr current = self;
+    while (current) {
+        std::lock_guard<std::mutex> lk(current->m_mutexChildren);
+        names.push_back(current->name);
+        current = current->parent.lock();
     }
     std::string result;
-    bool first = true;
-    for (auto it = chain.rbegin(); it != chain.rend(); ++it) {
-        InstancePtr node = *it;
-        std::lock_guard<std::mutex> lk(node->mutexChildren);
-        if (!first) result += '.';
-        result += node->name;
-        first = false;
+    for (auto it = names.rbegin(); it != names.rend(); ++it) {
+        if (!result.empty()) result += '.';
+        result += *it;
     }
-
     return result;
 }
 
 std::vector<InstancePtr> Instance::getChildren() const {
     Instance* self = const_cast<Instance*>(this);
-    std::lock_guard<std::mutex> lock(self->mutexChildren);
-    return children;
+    std::lock_guard<std::mutex> lock(self->m_mutexChildren);
+    return m_children;
 }
 
 void Instance::setParent(const InstancePtr& newParent) {
@@ -107,9 +93,9 @@ void Instance::setParent(const InstancePtr& newParent) {
     }
 
     std::vector<std::mutex*> mutexPtrs;
-    mutexPtrs.push_back(&mutexChildren);
-    if (oldParent) mutexPtrs.push_back(&oldParent->mutexChildren);
-    if (newParent) mutexPtrs.push_back(&newParent->mutexChildren);
+    mutexPtrs.push_back(&m_mutexChildren);
+    if (oldParent) mutexPtrs.push_back(&oldParent->m_mutexChildren);
+    if (newParent) mutexPtrs.push_back(&newParent->m_mutexChildren);
 
     std::sort(mutexPtrs.begin(), mutexPtrs.end());
     mutexPtrs.erase(std::unique(mutexPtrs.begin(), mutexPtrs.end()), mutexPtrs.end());
@@ -121,7 +107,7 @@ void Instance::setParent(const InstancePtr& newParent) {
     }
 
     if (oldParent) {
-        auto& oldChildren = oldParent->children;
+        auto& oldChildren = oldParent->m_children;
         auto it = std::find_if(oldChildren.begin(), oldChildren.end(),
             [this](const InstancePtr& p) { return p.get() == this; });
         if (it != oldChildren.end()) {
@@ -132,7 +118,7 @@ void Instance::setParent(const InstancePtr& newParent) {
     }
 
     if (newParent) {
-        auto& newChildren = newParent->children;
+        auto& newChildren = newParent->m_children;
         bool found = false;
         for (const auto& c : newChildren) {
             if (c.get() == this) { found = true; break; }
@@ -152,8 +138,8 @@ void Instance::setParent(const InstancePtr& newParent) {
 void Instance::destroy() {
     std::vector<InstancePtr> localChildren;
     {
-        std::lock_guard<std::mutex> lock(mutexChildren);
-        localChildren = children;
+        std::lock_guard<std::mutex> lock(m_mutexChildren);
+        localChildren = m_children;
     }
 
     for (auto& ch : localChildren) {
@@ -162,11 +148,11 @@ void Instance::destroy() {
 
     InstancePtr par = parent.lock();
     if (par) {
-        std::mutex* a = &mutexChildren;
-        std::mutex* b = &par->mutexChildren;
+        std::mutex* a = &m_mutexChildren;
+        std::mutex* b = &par->m_mutexChildren;
         if (a == b) {
             std::lock_guard<std::mutex> lk(*a);
-            auto& pcs = par->children;
+            auto& pcs = par->m_children;
             auto it = std::find_if(pcs.begin(), pcs.end(), [this](const InstancePtr& p) { return p.get() == this; });
             if (it != pcs.end()) pcs.erase(it);
             try { par->childRemoved.fire(); }
@@ -177,7 +163,7 @@ void Instance::destroy() {
             std::mutex* second = a < b ? b : a;
             std::lock_guard<std::mutex> l1(*first);
             std::lock_guard<std::mutex> l2(*second);
-            auto& pcs = par->children;
+            auto& pcs = par->m_children;
             auto it = std::find_if(pcs.begin(), pcs.end(), [this](const InstancePtr& p) { return p.get() == this; });
             if (it != pcs.end()) pcs.erase(it);
             try { par->childRemoved.fire(); }
@@ -190,8 +176,8 @@ void Instance::destroy() {
     catch (...) {}
 
     {
-        std::lock_guard<std::mutex> lock(mutexChildren);
-        children.clear();
+        std::lock_guard<std::mutex> lock(m_mutexChildren);
+        m_children.clear();
     }
 }
 
@@ -201,8 +187,8 @@ InstancePtr Instance::clone() const {
     std::vector<InstancePtr> localChildren;
     {
         Instance* self = const_cast<Instance*>(this);
-        std::lock_guard<std::mutex> lock(self->mutexChildren);
-        localChildren = children;
+        std::lock_guard<std::mutex> lock(self->m_mutexChildren);
+        localChildren = m_children;
     }
 
     for (const auto& ch : localChildren) {
@@ -218,6 +204,34 @@ InstancePtr Instance::clone() const {
 }
 
 std::string Instance::getClassName() {
-    //if (!m_className.empty()) return m_className;
+    std::string rawName = typeid(*this).name();
+
+    const std::string classPrefix = "class ";
+    const std::string structPrefix = "struct ";
+
+    if (rawName.starts_with(classPrefix)) {
+        return rawName.substr(classPrefix.length());
+    }
+
+    if (rawName.starts_with(structPrefix)) {
+        return rawName.substr(structPrefix.length());
+    }
+
     return std::string(typeid(*this).name());
+}
+
+
+std::vector<InstancePtr> Instance::getDescendants() const {
+    std::vector<InstancePtr> descendants;
+    Instance* self = const_cast<Instance*>(this);
+    std::lock_guard<std::mutex> lock(self->m_mutexChildren);
+
+    for (const auto& child : m_children) {
+        if (child) {
+            descendants.push_back(child);
+            auto childDescendants = child->getDescendants();
+            descendants.insert(descendants.end(), childDescendants.begin(), childDescendants.end());
+        }
+    }
+    return descendants;
 }
