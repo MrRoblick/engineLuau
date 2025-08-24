@@ -30,6 +30,7 @@
 #include <Instance/Instance.h>
 #include <Instance/DataModel.h>
 #include <Instance/BasePart.h>
+#include <Instance/Part.h>
 
 /* GLB DESERIALIZER */
 #include <MeshDeserializer/GlbDeserializer.h>
@@ -184,6 +185,8 @@ int main()
 	const auto object1 = resourceManager.meshManager.loadMeshFromFile("./resources/vegetable.glb");
 	const auto object2 = resourceManager.meshManager.loadMeshFromFile("./resources/TheText.glb");
 
+	const auto partMesh = resourceManager.meshManager.loadMeshFromFile("./resources/Part.glb");
+
 	datamodel->name = "Game";
 
 	auto workspace = std::make_shared<Instance>();
@@ -198,9 +201,25 @@ int main()
 	replicatedStorage->name = "ReplicatedStorage";
 	replicatedStorage->setParent(datamodel);
 
-	const auto plane = std::make_unique<Mesh3D>(planeVertices, planeIndices);
 	const auto currentCamera = std::make_unique<Camera3D>();
 	currentCamera->position = glm::vec3{ 0.0f, 2.0f, 2.0f };
+
+	{
+		const auto part = std::make_shared<Part>();
+		part->name = "Part1";
+		part->position = glm::vec3{ 0.0f, 5.0f, 0.0f };
+		part->size = glm::vec3{ 2.0f, 2.0f, 2.0f };
+		part->setParent(workspace);
+	}
+
+	{
+		const auto part = std::make_shared<Part>();
+		part->name = "Part2";
+		part->position = glm::vec3{ 0.0f, -2.0f, 0.0f };
+		part->size = glm::vec3{ 7.0f, 1.0f, 7.0f };
+		part->orientation = glm::vec3{ 0.0f, 0.0f, 0.0f };
+		part->setParent(workspace);
+	}
 
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
@@ -301,6 +320,20 @@ int main()
 			model = glm::translate(model, glm::vec3{ 0.0f, 3.2f, -3.0f });
 			mainShader->setMat4("model", model);
 			MeshRenderer::draw(*object2);
+		}
+
+		for (const auto& inst : workspace->getDescendants()) {
+			if (inst->getClassName() == "Part") {
+				auto part = std::dynamic_pointer_cast<Part>(inst);
+				if (part) {
+					auto model = glm::identity<glm::mat4>();
+					model = glm::translate(model, part->position);
+					model = glm::rotate(model, glm::radians(part->orientation.y), glm::vec3{ 0.0f, 1.0f, 0.0f });
+					model = glm::scale(model, part->size);
+					mainShader->setMat4("model", model);
+					MeshRenderer::draw(*partMesh);
+				}
+			}
 		}
 
 		if (showUi) {

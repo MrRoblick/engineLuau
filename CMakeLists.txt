@@ -14,6 +14,7 @@ set(GLFW "${EXTERN}/glfw")
 set(GLM "${EXTERN}/glm")
 set(IMGUI "${EXTERN}/imgui")
 set(JSON "${EXTERN}/json")
+set(STB "${EXTERN}/stb")
 
 add_library(glad STATIC "${GLAD}/src/glad.c")
 target_include_directories(glad PUBLIC "${GLAD}/include")
@@ -36,9 +37,12 @@ set(PROJECT_SOURCES
     "${SRC}/MeshDeserializer/GlbDeserializer.cpp"
     "${SRC}/ResourceManager/ResourceManager.cpp"
     "${SRC}/ResourceManager/Managers/MeshManager.cpp"
+    "${SRC}/ResourceManager/Managers/Texture2DManager.cpp"
+    "${SRC}/ResourceManager/Managers/MaterialManager.cpp"
     "${SRC}/Event/Connection.cpp"
     "${SRC}/Instance/Instance.cpp"
     "${SRC}/Instance/DataModel.cpp"
+    "${SRC}/Texture/Texture2D.cpp"
 )
 
 add_library(imgui STATIC ${IMGUI_SOURCES})
@@ -68,7 +72,9 @@ target_include_directories(GameEngineLuau PRIVATE
     "${GLM}/include"
     "${IMGUI}"
     "${IMGUI}/backends"
+    "${STB}/include"
     "${JSON}/include"
+
 )
 
 target_link_libraries(GameEngineLuau PRIVATE
