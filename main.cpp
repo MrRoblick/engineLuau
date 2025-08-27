@@ -289,11 +289,6 @@ int main()
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		glClearColor(0.0f, 0.5f, 1.0f, 1.0f);
 
-		if (wireframeMode)
-			glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-		else
-			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-
 		glfwTime = glfwGetTime();
 		double deltaTime = glfwTime - lastGlfwTime;
 		lastGlfwTime = glfwTime;
@@ -353,6 +348,7 @@ int main()
 		}
 		glDisable(GL_DEPTH_TEST);
 		glDisable(GL_CULL_FACE);
+		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
 		skyboxShader->use();
 		skyboxShader->setInt("skyboxTex", 0);
@@ -364,6 +360,11 @@ int main()
 		glEnable(GL_CULL_FACE);
 
 		mainShader->use();
+		if (wireframeMode)
+			glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+		else
+			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+
 		mainShader->setMat4("projection", currentCamera->getProjectionMatrix());
 		mainShader->setMat4("view", currentCamera->getViewMatrix());
 
