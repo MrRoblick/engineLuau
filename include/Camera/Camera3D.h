@@ -17,5 +17,6 @@ public:
 	~Camera3D() = default;
 
 	glm::mat4 getViewMatrix() const override;
+	glm::mat4 getRotationMatrix() const override;
 	glm::mat4 getProjectionMatrix() const override;
 };

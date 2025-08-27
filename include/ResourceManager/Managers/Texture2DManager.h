@@ -8,7 +8,6 @@
 class Texture2DManager {
 public:
 	static Texture2DManager& getInstance();
-	/* SUPPORTED ONLY GLB */
 	std::shared_ptr<Texture2D> loadTextureFromFile(const std::string& filename);
 	uint32_t count();
 private:

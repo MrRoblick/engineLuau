@@ -47,6 +47,7 @@
 
 /* GLSL SHADERS */
 
+/* BASIC 3D VERTEX SHADER */
 std::string vertexSrc = R"(#version 460
 
 layout(location=0) in vec3 vertex;
@@ -73,6 +74,7 @@ void main(){
 
 )";
 
+/* BASIC 3D FRAGMENT SHADER */
 std::string fragmentSrc = R"(#version 460
 
 uniform sampler2D meshTexture;
@@ -92,6 +94,38 @@ void main(){
 	vec4 texColor = useTexture ? texture2D(meshTexture, aTextureCoords*uTile) : vec4(1.0); // vec4(aNormal, 1.0); 
 	vec4 lightFaceColor = vec4(texColor.rgb * (0.3 + 0.7*diff), texColor.a);
 	OutputColor = lightFaceColor;
+}
+
+)";
+
+/* SKYBOX VERTEX SHADER */
+std::string skyboxVertexSrc = R"(#version 460
+layout(location=0) in vec3 vertex;
+layout(location=1) in vec3 normal;
+layout(location=2) in vec3 vertexColor;
+layout(location=3) in vec2 textureCoords;
+
+uniform mat4 projection;
+uniform mat4 view;
+
+out vec3 aVertex;
+
+void main(){
+	gl_Position = (projection * view * vec4(vertex, 1.0)).xyww;
+	aVertex = vertex;
+}
+
+)";
+
+/* SKYBOX FRAGMENT SHADER */
+std::string skyboxFragmentSrc = R"(#version 460
+uniform samplerCube skyboxTex;
+
+in vec3 aVertex;
+out vec4 OutputColor;
+
+void main(){
+	OutputColor = texture(skyboxTex, aVertex);
 }
 
 )";
@@ -182,24 +216,27 @@ int main()
 	glCullFace(GL_BACK);
 
 	const auto mainShader = std::make_unique<Shader>(vertexSrc, fragmentSrc);
-	const std::vector<Mesh3D::Vertex> planeVertices{
-		Mesh3D::Vertex{ glm::vec3{-0.5f, 0.0f, 0.5f}, glm::vec3{1.0f, 1.0f, 1.0f}, glm::vec3{0.0f, 1.0f, 0.0f}, glm::vec2{0.0f, 1.0f},}, // Left Back
-		Mesh3D::Vertex{ glm::vec3{-0.5f, 0.0f, -0.5f}, glm::vec3{1.0f, 1.0f, 1.0f}, glm::vec3{0.0f, 1.0f, 0.0f}, glm::vec2{0.0f, 0.0f}, }, // Left Front
-		Mesh3D::Vertex{ glm::vec3{0.5f, 0.0f, -0.5f}, glm::vec3{1.0f, 1.0f, 1.0f}, glm::vec3{0.0f, 1.0f, 0.0f}, glm::vec2{1.0f, 0.0f}, }, // Right Front
-		Mesh3D::Vertex{ glm::vec3{0.5f, 0.0f, 0.5f}, glm::vec3{1.0f, 1.0f, 1.0f}, glm::vec3{0.0f, 1.0f, 0.0f}, glm::vec2{1.0f, 1.0f}, }, // Right Back
-	};
-	const std::vector<unsigned int> planeIndices{
-		0, 1, 2,
-		0, 3, 2
-	};
+	const auto skyboxShader = std::make_unique<Shader>(skyboxVertexSrc, skyboxFragmentSrc);
+
 	const auto object = resourceManager.meshManager.loadMeshFromFile("./resources/pumpkin.glb");
 	const auto object1 = resourceManager.meshManager.loadMeshFromFile("./resources/vegetable.glb");
 	const auto object2 = resourceManager.meshManager.loadMeshFromFile("./resources/TheText.glb");
+	const auto skyboxMesh = resourceManager.meshManager.loadMeshFromFile("./resources/skybox/skybox_mesh.glb");
 
 	const auto partMesh = resourceManager.meshManager.loadMeshFromFile("./resources/Part.glb");
 	const auto vegetableTexture = resourceManager.texture2DManager.loadTextureFromFile("./resources/vegetable.png");
 	const auto pumpkinTexture = resourceManager.texture2DManager.loadTextureFromFile("./resources/pumpkinTex.png");
 	const auto plasticStudsTexture = resourceManager.texture2DManager.loadTextureFromFile("./resources/plasticStuds.png");
+
+	const auto skyboxCubeMapTexture = resourceManager.textureCubeMapManager.loadTexturesFromFile(
+		"basic_cubemap",
+		"./resources/skybox/Ft.png",
+		"./resources/skybox/Bk.png",
+		"./resources/skybox/Lf.png",
+		"./resources/skybox/Rt.png",
+		"./resources/skybox/Up.png",
+		"./resources/skybox/Dn.png"
+	);
 
 	datamodel->name = "Game";
 
@@ -314,6 +351,17 @@ int main()
 		if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS) {
 			currentCamera->position += glm::vec3{ 0.0f, -10.0f * deltaTime, 0.0f };
 		}
+		glDisable(GL_DEPTH_TEST);
+		glDisable(GL_CULL_FACE);
+
+		skyboxShader->use();
+		skyboxShader->setInt("skyboxTex", 0);
+		skyboxShader->setMat4("projection", currentCamera->getProjectionMatrix());
+		skyboxShader->setMat4("view", currentCamera->getRotationMatrix());
+		MeshRenderer::draw(*skyboxMesh, { skyboxCubeMapTexture });
+
+		glEnable(GL_DEPTH_TEST);
+		glEnable(GL_CULL_FACE);
 
 		mainShader->use();
 		mainShader->setMat4("projection", currentCamera->getProjectionMatrix());

@@ -46,5 +46,6 @@ glm::uvec2 Texture2D::getSize() const {
 Texture2D::~Texture2D() {
 	if (m_id != 0) {
 		glDeleteTextures(1, &m_id);
+		m_id = 0;
 	}
 }

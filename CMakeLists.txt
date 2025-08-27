@@ -32,6 +32,7 @@ set(IMGUI_SOURCES
 set(PROJECT_SOURCES
     "${SRC}/Shader/Shader.cpp"
     "${SRC}/Mesh/Mesh3D.cpp"
+    "${SRC}/Mesh/DynamicMesh3D.cpp"
     "${SRC}/Render/MeshRenderer.cpp"
     "${SRC}/Camera/Camera3D.cpp"
     "${SRC}/MeshDeserializer/GlbDeserializer.cpp"
@@ -39,11 +40,12 @@ set(PROJECT_SOURCES
     "${SRC}/ResourceManager/Managers/MeshManager.cpp"
     "${SRC}/ResourceManager/Managers/Texture2DManager.cpp"
     "${SRC}/ResourceManager/Managers/MaterialManager.cpp"
+    "${SRC}/ResourceManager/Managers/TextureCubeMapManager.cpp"
     "${SRC}/Event/Connection.cpp"
     "${SRC}/Instance/Instance.cpp"
     "${SRC}/Instance/DataModel.cpp"
     "${SRC}/Texture/Texture2D.cpp"
-    "${STB}/include/stb/stb_image.h"
+    "${SRC}/Texture/TextureCubeMap.cpp"
 )
 
 add_library(imgui STATIC ${IMGUI_SOURCES})
